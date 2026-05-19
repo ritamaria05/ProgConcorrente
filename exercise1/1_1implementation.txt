@@ -1,0 +1,7 @@
+P1 := lockA!.lockB!.take.add.unlockA!.unlockB!.P1
+P2 := lockB!.lockA!.take.add.unlockB!.unlockA!.P2
+C1 := lockA?.unlockA?.C1
+C2 := lockB?.unlockB?.C2
+TransferDeadlock := (P1|P2|C1|C2)\{lockB, lockA, unlockB, unlockA}
+
+TransferDeadlock
