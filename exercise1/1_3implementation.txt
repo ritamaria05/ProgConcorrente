@@ -1,0 +1,13 @@
+Eren := lockEren!.lockHinata!.take.add.unlockHinata!.unlockEren!.Eren + lockEren!.lockZenitsu!.take.add.unlockZenitsu!.unlockEren!.Eren
+
+Hinata := lockHinata!.lockEren!.take.add.unlockEren!.unlockHinata!.Hinata
+
+Zenitsu := lockZenitsu!.lockHinata!.take.add.unlockHinata!.unlockZenitsu!.Zenitsu
+
+CEren := lockEren?.unlockEren?.CEren
+CHinata := lockHinata?.unlockHinata?.CHinata
+CZenitsu := lockZenitsu?.unlockZenitsu?.Zenitsu
+
+TotalDeadlock := (Eren | Hinata | Zenitsu | CZenitsu | CHinata | CEren)\{lockEren, lockZenitsu, lockHinata, unlockZenitsu, unlockHinata, unlockEren}
+
+TotalDeadlock

@@ -1,0 +1,5 @@
+name := "CPPROJECT"
+version := "1.0"
+scalaVersion := "2.13.12"
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.8.5"
+scalacOptions += "-deprecation"
