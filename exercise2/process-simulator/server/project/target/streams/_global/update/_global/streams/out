@@ -1,0 +1,7 @@
+[0m[[0m[0mdebug[0m] [0m[0mnot up to date. inChanged = true, force = false[0m
+[0m[[0m[0mdebug[0m] [0m[0mUpdating ProjectRef(uri("file:/C:/Users/orlan/OneDrive/Desktop/Programação/ProgConcorrente/exercise2/process-simulator/server/project/"), "server-build")...[0m
+[0m[[0m[0minfo[0m] [0m[0mUpdating server-build[0m
+[0m[[0m[0minfo[0m] [0m[0mResolved server-build dependencies[0m
+[0m[[0m[0minfo[0m] [0m[0mFetching artifacts of server-build[0m
+[0m[[0m[0minfo[0m] [0m[0mFetched artifacts of server-build[0m
+[0m[[0m[0mdebug[0m] [0m[0mDone updating ProjectRef(uri("file:/C:/Users/orlan/OneDrive/Desktop/Programação/ProgConcorrente/exercise2/process-simulator/server/project/"), "server-build")[0m
