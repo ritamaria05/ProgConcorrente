@@ -1,0 +1,35 @@
+state.counter += 1 is a read-modify-write sequence, not atomic. With concurrent requests, two threads can do:
+
+Thread A reads counter = 41
+Thread B reads counter = 41
+Thread A writes 42
+Thread B writes 42 (lost update)
+So one increment disappears.
+
+A likely failing input program is any burst of concurrent /run-simulation requests.
+
+We simulate this in StressTest.scala
+
+
+Efficient fix: use an atomic counter:
+
+
+import java.util.concurrent.atomic.AtomicInteger
+
+class ServerState {
+  private val counter = new AtomicInteger(0)
+
+  def nextRequestId(): Int = counter.incrementAndGet()
+  def resetCounter(): Unit = counter.set(0)
+  def currentCounter: Int = counter.get
+}
+
+
+Then in route logic:
+
+Replace state.counter += 1; val cnt = state.counter with val cnt = state.nextRequestId()
+Replace reset assignment with state.resetCounter()
+AtomicInteger.incrementAndGet() guarantees no lost increments and gives each request a unique number under concurrency.
+
+
+PS: in the implementation of the server resetCounter() was replaced by clear() since we also want to reset the log queue.

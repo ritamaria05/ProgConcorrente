@@ -1,0 +1,20 @@
+A simple use of @volatile is a shared pause flag controlling 
+whether instruction execution is temporarily suspended. 
+Multiple worker threads repeatedly check this variable before continuing execution. 
+Without @volatile, threads may cache the variable locally and fail to observe updates performed 
+by another thread, causing some instructions to remain blocked indefinitely.
+
+By declaring the variable as @volatile, all writes become immediately visible to other threads, 
+guaranteeing that paused worker threads correctly resume execution after the flag changes.
+
+in VolatileTest.scala we:
+
+Calls /pause
+Submit /run-simulation with the dependency-rich input program
+Wait 1.5s so workers enter the paused loop
+Calls /resume
+Fetches /status and print it
+
+
+This scenario is a pure visibility problem: one thread writes paused=false, other threads are busy-reading paused
+@volatile gives the happens-before visibility guarantee needed for this pattern

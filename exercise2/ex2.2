@@ -1,0 +1,30 @@
+Using StressTest.Scala we simulate 50 requests to /run-simulation with each 
+request asking the server to print an unique number i (1 to 50).
+
+With a non-thread-safe structure, several problems could occur:
+
+- lost log entries
+- corrupted internal state
+- inconsistent log sizes
+- exceptions during iteration
+- duplicated or partially written entries
+
+Example failure:
+
+Thread x and Thread y both try to append at the same moment:
+
+Initial size = 10
+
+Thread x reads size = 10
+Thread y reads size = 10
+
+Thread x writes at index 10
+Thread y also writes at index 10
+
+Result:
+
+One message disappears (overwritten)
+The size counter becomes incorrect (might show 11 instead of 12, or be completely inconsistent)
+The log content becomes corrupted
+
+Which would lead to us having less than the 50 logs after the program ends.

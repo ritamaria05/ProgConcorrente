@@ -1,0 +1,59 @@
+Example 1:
+
+print "A" @3; print "B"; print "C" after 1
+
+What should happen:
+
+Instruction 2 (B) is independent, so it can finish early.
+Instruction 3 (C) must wait for instruction 1 (A) to fully finish (including its 3s delay).
+Valid pattern: B appears before A and C, and C always appears after A.
+
+Proof of concurrency:
+
+You see concurrency (B runs while A sleeps) plus a strict dependency edge (1 -> 3).
+
+------------------------------------------------------------
+
+Example 2:
+
+print "FetchData" @2; print "Auth" @1; print "Process" after 1,2; 
+print "LogAuth" after 2
+
+Process (3) only appears after both FetchData (1) and Auth (2).
+LogAuth (4) only depends on Auth (2), so it may appear before or after FetchData (1).
+Valid outcomes include:
+Auth, LogAuth, FetchData, Process
+Auth, FetchData, LogAuth, Process
+
+Proof of concurrency:
+
+It demonstrates correct multi-parent synchronization
+
+----------------------------------------------------------- 
+
+Example 3:
+
+print "Compile" @2; print "Test" @1 after 1; print "Package" after 2; 
+print "Notify"; print "Deploy" after 3,4
+
+Chain: Compile (1) -> Test (2) -> Package (3).
+Notify (4) is independent and can happen anytime.
+Deploy (5) must wait for both Package (3) and Notify (4).
+So 5 is always last among {3,4,5}, and never appears before 3 or 4.
+
+Proof of concurrency:
+
+It shows mixed behavior: a sequential dependency chain running 
+concurrently with an independent task, then a final join barrier.
+
+----------------------------------------------------------------
+Example 4 (extra):
+
+print "first" after 2; print "second" after 1;
+
+Result:
+
+"Invalid dependency graph: cycle detected in after-clause"
+
+
+PS: we implemented a dependency cycle checker 
