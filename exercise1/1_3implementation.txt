@@ -1,8 +1,8 @@
-Eren := lockEren!.lockHinata!.take.add.unlockHinata!.unlockEren!.Eren + lockEren!.lockZenitsu!.take.add.unlockZenitsu!.unlockEren!.Eren
+Eren := lockEren!.lockHinata!.send.unlockHinata!.unlockEren!.Eren + lockEren!.lockZenitsu!.send.unlockZenitsu!.unlockEren!.Eren
 
-Hinata := lockHinata!.lockEren!.take.add.unlockEren!.unlockHinata!.Hinata
+Hinata := lockHinata!.lockEren!.send.unlockEren!.unlockHinata!.Hinata
 
-Zenitsu := lockZenitsu!.lockHinata!.take.add.unlockHinata!.unlockZenitsu!.Zenitsu
+Zenitsu := lockZenitsu!.lockHinata!.send.unlockHinata!.unlockZenitsu!.Zenitsu
 
 CEren := lockEren?.unlockEren?.CEren
 CHinata := lockHinata?.unlockHinata?.CHinata

@@ -1,4 +1,4 @@
-Person[x, cmd] := cmd?y.lock!x.lock!y.take!x.add!y.unlock!y.unlock!x.Person[x, cmd]
+Person[x, cmd] := cmd?y.lock!x.lock!y.send.unlock!y.unlock!x.Person[x, cmd]
 Utilizador := cmd1!3.Utilizador + cmd3!1.Utilizador + 
               cmd1!2.Utilizador + cmd2!1.Utilizador + 
               cmd3!2.Utilizador + cmd2!3.Utilizador
@@ -12,6 +12,6 @@ GestorContas[c1,c2,c3] :=
         when(id==2 && c2 == 1) GestorContas[c1,0,c3] +
         when(id==3 && c3 == 1) GestorContas[c1,c2,0]
     )
-Sistema := (Person[1,cmd1] | Person[2,cmd2] | Person[3,cmd3] | Utilizador | GestorContas[0,0,0])\{cmd1, cmd2, cmd3, lock, unlock, take, add}
+Sistema := (Person[1,cmd1] | Person[2,cmd2] | Person[3,cmd3] | Utilizador | GestorContas[0,0,0])\{cmd1, cmd2, cmd3, lock, unlock}
 
 Sistema

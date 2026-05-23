@@ -1,5 +1,5 @@
-P1 := lockA!.lockB!.take.add.unlockB!.unlockA!.P1
-P2 := lockA!.lockB!.take.add.unlockB!.unlockA!.P2
+P1 := lockA!.lockB!.send.unlockB!.unlockA!.P1
+P2 := lockA!.lockB!.send.unlockB!.unlockA!.P2
 C1 := lockA?.unlockA?.C1
 C2 := lockB?.unlockB?.C2
 TransferFixed := (P1|P2|C1|C2)\{lockB, lockA, unlockB, unlockA}
