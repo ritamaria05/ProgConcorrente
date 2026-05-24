@@ -11,7 +11,7 @@ object TicketOfficeTest extends App {
 
     // Testing the system
     val sys = akka.actor.ActorSystem("TicketSys")
-    val ticketOffice = sys.actorOf(Props[SellerActor], "main-office")
+    val ticketOffice = sys.actorOf(Props[SellerActor](), "main-office")
 
     class SellerActor extends Actor {
     val log = Logging(context.system, this)

@@ -16,7 +16,7 @@ object TicketOfficeChild extends App {
     // Testing the system
     val sys = akka.actor.ActorSystem("TicketSys")
     // main-office: ator principal
-    val ticketOffice = sys.actorOf(Props[SellerActor], "main-office")
+    val ticketOffice = sys.actorOf(Props[SellerActor](), "main-office")
 
     class SellerActor extends Actor {
     val log = Logging(context.system, this)
@@ -30,7 +30,7 @@ object TicketOfficeChild extends App {
             var stock = n+m 
             log.info(s"Received to sell message: $m")
             while(stock > 100) {
-                val child = context.actorOf(Props[SellerActor]) // cria novo ator (filho do SellerActor)
+                val child = context.actorOf(Props[SellerActor]()) // cria novo ator (filho do SellerActor)
                 child ! ToSell(50) // passa valor fixo para tentar vender
                 stock -= 50
             }
