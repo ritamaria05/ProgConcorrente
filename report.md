@@ -2,7 +2,14 @@
 Group 6: Rita Moreira (202303885) and Orlando Soares (202303606)
 
 # 0. AI Support
-For this project AI was mainly used for checking correctness of the answers or getting any doubts out of the way. 
+In the development of this project, LLMs were strictly used as an auxiliary aid and validation instrument, rather than as code generators. 
+
+Specifically, AI support was engaged for the following purposes:
+- To verify the correctness of manually developed answers, particularly in the analytical proof for the Bisimulation Game
+- To assist in translating code into formal explanations
+- To act as a tutor for clarifying advanced concurrency concepts, specifically regarding Actors
+- To clarify best practices for the hierarchy and sequence diagrams
+
 
 # 1. Exercise 1: Sending money using locks
 
