@@ -10,7 +10,6 @@ Specifically, AI support was engaged for the following purposes:
 - To act as a tutor for clarifying advanced concurrency concepts, specifically regarding Actors
 - To clarify best practices for the hierarchy and sequence diagrams
 
-
 # 1. Exercise 1: Sending money using locks
 
 ## 1.1. Simple CCS Model (with deadlock)
@@ -85,28 +84,174 @@ Because the Person template utilizes the naive locking sequence, the circular wa
 
 # 2. Simulate dependent processes in a server
 
-## 2.1. Counter correction and analysis
+## 2.1. Counter Correction and Analysis
 
-- detect anomaly using input program that fails
-- explain why it fails
-- implemented solution explained
+### 2.1.1. The Anomaly: Lost Updates
 
-## 2.2. Lock-free data structure
+The original implementation uses a non-atomic read-modify-write sequence for request ID generation:
 
-- concurrency analysis (another input program that fails)
-- theoretical explanation
-- correction results
+```
+state.counter += 1
+```
 
-## 2.3. Dependency mechanism
+This operation is not atomic and can fail under concurrent load. When multiple threads execute this instruction simultaneously, a race condition occurs:
 
-- case test 1
-- case test 2
-- case test 3
+1. Thread A reads counter = 41
+2. Thread B reads counter = 41
+3. Thread A writes 42
+4. Thread B writes 42 (lost update)
 
-## 2.4. @volatile variable addition
+Result: One increment is lost; the counter advances by only 1 instead of 2.
 
-- theoretical explanation
-- practical demo
+### 2.1.2. Failure Detection
+
+The anomaly is detected using `StressTest.scala`, which simulates a burst of concurrent `/run-simulation` requests. Each request increments the counter, and with sufficient concurrent load, the lost update phenomenon becomes observable.
+
+### 2.1.3. The Solution: AtomicInteger
+
+The fix uses Java's `java.util.concurrent.atomic.AtomicInteger`:
+
+```scala
+import java.util.concurrent.atomic.AtomicInteger
+
+class ServerState {
+  private val counter = new AtomicInteger(0)
+
+  def nextRequestId(): Int = counter.incrementAndGet()
+  def resetCounter(): Unit = counter.set(0)
+  def currentCounter: Int = counter.get()
+}
+```
+
+The `incrementAndGet()` method is guaranteed to be atomic: it performs the read-modify-write sequence as a single indivisible operation. Under concurrency, each thread receives a unique incremented value, and no updates are lost.
+
+## 2.2. Lock-Free Data Structure: Log Queue Protection
+
+### 2.2.1. The Concurrency Problem
+
+The original log queue implementation is not thread-safe. When multiple threads attempt to append log entries concurrently, several failure modes can occur:
+
+- **Lost log entries**: Two threads write at the same index simultaneously, overwriting each other's data
+- **Corrupted internal state**: Size counters become inconsistent
+- **Inconsistent log sizes**: The queue reports different sizes at different times
+- **Exceptions during iteration**: Concurrent modifications throw `ConcurrentModificationException`
+- **Duplicated or partially written entries**: Incomplete writes visible to other threads
+
+### 2.2.2. Concrete Failure Scenario
+
+With `StressTest.scala` simulating 50 concurrent requests to `/run-simulation`:
+
+1. Thread X and Thread Y attempt to append simultaneously
+2. Initial queue size = 10
+3. Thread X reads size = 10
+4. Thread Y reads size = 10
+5. Thread X writes at index 10
+6. Thread Y also writes at index 10
+7. Result: One message is overwritten and disappears; the final queue contains fewer than 50 entries
+
+### 2.2.3. Solution: ConcorrentLinkedQueue
+
+ConcurrentLinkedQueue[String]()
+
+`java.util.concurrent.ConcurrentLinkedQueue` provides lock-free thread-safe appends.
+
+## 2.3. Dependency Mechanism
+
+The dependency system allows specifying that instruction execution must respect ordering constraints. Instructions can declare dependencies using the `after` clause.
+
+### 2.3.1. Example 1: Sequential Dependency with Independent Instruction
+
+```
+print "A" @3; print "B"; print "C" after 1
+```
+
+- Instruction 1 (A) has a 3-second delay
+- Instruction 2 (B) is independent with no delay
+- Instruction 3 (C) depends on instruction 1 (A) completing
+
+Expected behavior:
+
+- B can print immediately (concurrency proof: B runs while A is delayed)
+- C must always print after A finishes
+- Valid output: `B A C` (B runs during A's delay)
+
+### 2.3.2. Example 2: Multi-Parent Synchronization
+
+```
+print "FetchData" @2; print "Auth" @1; print "Process" after 1,2; print "LogAuth" after 2
+```
+
+- Instruction 3 (Process) depends on both instructions 1 and 2 completing
+- Instruction 4 (LogAuth) depends only on instruction 2
+
+Expected behavior:
+
+- LogAuth may appear before or after FetchData (no dependency between them)
+- Process never appears before both FetchData and Auth complete
+- Valid outputs include: `Auth, LogAuth, FetchData, Process` or `Auth, FetchData, LogAuth, Process`
+
+### 2.3.3. Example 3: Sequential Chain with Independent Task and Final Barrier
+
+```
+print "Compile" @2; print "Test" @1 after 1; print "Package" after 2; 
+print "Notify"; print "Deploy" after 3,4
+```
+
+- A sequential chain: Compile (1) → Test (2) → Package (3)
+- Notify (4) is independent and can execute anytime
+- Deploy (5) is a final barrier that depends on both Package (3) and Notify (4)
+
+Expected behavior:
+
+- Notify can appear anywhere relative to Compile/Test/Package
+- Deploy is always last among {Package, Notify, Deploy}
+- Demonstrates mixed behavior: a dependency chain running concurrently with an independent task, concluding with a join barrier
+
+### 2.3.4. Cycle Detection
+
+The implementation includes a dependency cycle detector. Invalid input such as:
+
+```
+print "first" after 2; print "second" after 1;
+```
+
+Where instruction 1 depends on 2 and instruction 2 depends on 1, triggers an error:
+
+```
+Invalid dependency graph: cycle detected in after-clause
+```
+
+This ensures that the dependency graph remains a DAG (Directed Acyclic Graph).
+
+## 2.4. @volatile Variable Addition
+
+### 2.4.1. The Visibility Problem
+
+A common concurrency issue is the lack of visibility guarantee when one thread modifies a variable and other threads read it. Without proper synchronization, threads may cache variable values locally and fail to observe updates from other threads.
+
+Example: A shared `paused` flag controlling whether instruction execution is suspended. Multiple worker threads repeatedly check this flag before continuing execution. Without `@volatile`, threads may cache the variable locally and continue executing despite updates from the main thread setting `paused = true`.
+
+### 2.4.2. The @volatile Solution
+
+By declaring the variable as `@volatile`:
+
+```scala
+@volatile var paused: Boolean = false
+```
+
+All writes to the variable become immediately visible to all other threads. This provides the happens-before visibility guarantee necessary for this pattern.
+
+### 2.4.3. Practical Demonstration
+
+`VolatileTest.scala` implements the following test scenario:
+
+1. Call `/pause` to set the pause flag
+2. Submit `/run-simulation` with a dependency-rich input program
+3. Wait 1.5 seconds for worker threads to enter the paused loop
+4. Call `/resume` to clear the pause flag (write `paused = false`)
+5. Fetch `/status` and verify that execution resumed
+
+This scenario is a pure visibility problem: one thread writes `paused = false`, other threads are busy-reading `paused`. Without `@volatile`, worker threads would not observe the write and would remain blocked indefinitely. With `@volatile`, the happens-before guarantee ensures that all threads immediately see the updated value and resume execution.
 
 # 3. Selling tickets with actors
 

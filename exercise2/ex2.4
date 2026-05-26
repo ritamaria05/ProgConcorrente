@@ -1,3 +1,5 @@
+Exercise 2.4:
+
 A simple use of @volatile is a shared pause flag controlling 
 whether instruction execution is temporarily suspended. 
 Multiple worker threads repeatedly check this variable before continuing execution. 
@@ -9,11 +11,11 @@ guaranteeing that paused worker threads correctly resume execution after the fla
 
 in VolatileTest.scala we:
 
-Calls /pause
+Call /pause
 Submit /run-simulation with the dependency-rich input program
 Wait 1.5s so workers enter the paused loop
-Calls /resume
-Fetches /status and print it
+Call /resume
+Fetch /status and print it
 
 
 This scenario is a pure visibility problem: one thread writes paused=false, other threads are busy-reading paused
