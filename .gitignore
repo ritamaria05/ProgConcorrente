@@ -4,3 +4,4 @@
 .scala-build/
 .vscode/
 target/
+.DS_Store
