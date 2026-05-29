@@ -1,6 +1,7 @@
 package exercise3
 import akka.actor._
 import akka.event.Logging
+import scala.io.StdIn
 object TicketOfficeTest extends App {
     // bilheteira pode disponibilizar para venda uma quantidade adicional de bilhetes (n),
     // sendo m os já disponíveis para venda
@@ -34,18 +35,21 @@ object TicketOfficeTest extends App {
         }
     }
 
-    // testar
+    // sistema de input de testes
+    print("Enter initial stock: ")
+    val initialStock = StdIn.readInt()
+    print("Enter tickets to buy: ")
+    val ticketsToBuy = StdIn.readInt()
+    print("Enter number of requests: ")
+    val numRequests = StdIn.readInt()
     val sys = akka.actor.ActorSystem("TicketSys")
+    print("Starting...")
     val ticketOffice = sys.actorOf(Props[SellerActor](), "main-office")
-
-    ticketOffice ! ToSell(2000)
-
-    for (_ <- 0 until 101) ticketOffice ! Buy(20)
-
-    println(s"Tried to buy many ${20*101} tickets.") 
-
-    ticketOffice ! Bye
+    ticketOffice ! ToSell(initialStock)
+    for (_ <- 0 until numRequests) ticketOffice ! Buy(ticketsToBuy)
+    println(s"Tried to buy many ${ticketsToBuy*numRequests} tickets.")
     Thread.sleep(3000)
-
+    ticketOffice ! Bye
+    Thread.sleep(1000)
     sys.terminate()
 }

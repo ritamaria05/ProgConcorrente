@@ -14,30 +14,37 @@ Specifically, AI support was engaged for the following purposes:
 
 ## 1.1. Simple CCS Model (with deadlock)
 
-In the model developed, the structure consists of four parallel processes: two main processes (P1, P2), that represent the participants in the transaction, and two auxiliary processes responsible for modeling the locks (mutual exclusion mechanisms) of their respective accounts (C1 for P1 and C2 for P2).
+The system is modeled as a composition of four concurrent processes $TransferDeadlock = (P1|P2|C1|C2)\L$, where $L$ is the restriction set ${lockA, lockB, unlockA, unlockB}$, that hides the internal locking actions. The processes $P1$ and $P2$ represent the two participants in the transaction, while $C1$ and $C2$ are auxiliary processes that model the locks for their respective accounts, i.e., control access to the critical section.
+
+In this model, mutual exclusion is enforced via syncronization over complementary ($?$ and $!$) actions. When $P1$ executes $lockA!$, it must synchronize with $C1$'s complementary $lockA?$ action, which represents the acquisition of the lock for account A. The same applies for $P2$ and $C2$ with lockB.
 
 When process P1 intends to transfer money to P2, it executes the following sequence of actions:
 1. Acquires the lock for its own account (For P1, lockA; for P2, lockB), ensuring exclusive access.
-2. Tries to acquire the lock for the destination account (For P1, lockA; for P2, lockB)
+2. Tries to acquire the lock for the destination account (For P1, lockB; for P2, lockA)
 3. If the locks are acquired, the transaction is processed and the atomic action send€ is emitted, indicating that the transfer is completed.
 4. Finally, the resources are released, in the reverse order of their acquisition (For P1-P2, unlockB-unlockA; for P2-P1, unlockA-unlockB)
 
-This architecture allows the demonstration of a concurrency anomaly. The deadlock occurs due to a circular wait condition: if P1 and P2 initiate simulataneous transfers, P1 will retain lockA while P2 retains lockB. When P1 tries to acquire the lock for B, it needs to wait for its release, and the same happens for P2 with lockA. This leads to the purple state in the LTS.
+This naive implementation leads to a circular wait condition, resulting in a deadlock:
+1. P1 acquires lockA, by executing lockA! and synchronizing with C1's lockA?
+2.  The scheduler switches to P2, which acquires lockB by executing lockB! and synchronizing with C2's lockB?
+3. P1 attempts to acquire lockB, but is blocked because P2 holds it
+4. P2 attempts to acquire lockA, but is blocked because P1 holds it
 
-The respective LTS is represented below:
 
 ![LTS](/exercise1/lts1_1.png)
+
+*Figure 1: LTS of the model with deadlock. The deadlock is represented by the purple node, where both processes are stuck waiting for each other to release the locks and there are no valid transitions.*
 
 
 ## 1.2. Deadlock fix
 
-To fix the deadlock condition on exercise 1.1., the resource acquisition protocol was modified. To fix the circular wait of the previous model, a strict ordering for lock acquisition was established. Now, both processes must acquire the shared resources in the exact same sequential order (lockA then lockB), regardless of the transfer's direction. 
+To fix the deadlock condition on exercise 1.1., the resource acquisition protocol was modified. To fix the circular wait of the previous model, a strict ordering for lock acquisition was established. Now, both processes must acquire the shared resources in the exact same sequential order (lockA then lockB), regardless of the transfer's direction. Consequently, if $P1$ acquires $C1$, $P2$ must wait until $P1$ releases $C1$ before it can acquire it, even if $P2$ is trying to transfer to $P1$.
 
 From here, the circular dependency is eliminated, while maintaining the mutual exclusion. If a process initiates a transfer and acquires the first lock in the hierarcy, any parallel process attempting a transfer will be blocked at the beginning of the cycle, not holding any resources. 
 
-The respective LTS is represented below:
-
 ![LTS](/exercise1/lts1_2.png)
+
+*Figure 2: LTS of the model with the deadlock fix. The circular wait is eliminated, as both processes must acquire locks in the same order. There are no dead states in this model, as any process that initiates a transfer will be blocked at the beginning of the cycle, not holding any resources.*
 
 To prove that the original model (Deadlock) and the modified model (Fixed) are not weakly bisimilar ($Deadlock \not\approx Fixed$), we apply the Attacker/Defenser Bisimulation Game. Let the initial state of the Exercise 1.1 LTS be $Deadlock_0$ and the initial state of the Exercise 1.2 LTS be $Fixed_0$.
 
@@ -45,13 +52,15 @@ To prove that the original model (Deadlock) and the modified model (Fixed) are n
 
 The proof consists on demonstrating that the Attacker can reach a state in the $Deadlock$ system whose observable behaviour cannot be matched by any sequence of weak transitions ($\Rightarrow$) made by the Defenser in the $Fixed$ system.
 
-1. Attack: The attacker, playing on the Deadlock LTS, executes a $\tau$ transition. That can lead it to two different states: $Deadlock_0 \xrightarrow{\tau} Deadlock_1$ or $Deadlock_0 \xrightarrow{\tau} Deadlock_2$.
-2. Defense: The defender, playing on the Fixed LTS, must match the $\tau$ move with a $\tau$ sequence. It can move to many states ($Fixed_0 \xRightarrow{\tau} Fixed_1$).
-3. Attack: The attacker only has $\tau$'s transitions. Two of them leads to a dead state, so we choose $Deadlock_1 \xrightarrow{\tau} Deadlock_stuck$.
+1. Attack: The attacker, playing on the Deadlock LTS, executes an internal transition $\tau$. That can lead it to two different states: $Deadlock_0 \xrightarrow{\tau} Deadlock_1$ or $Deadlock_0 \xrightarrow{\tau} Deadlock_2$.
+2. Defense: The defender, playing on the Fixed LTS, must match the $\tau$ transition ($\rightarrow$) with a $\tau$ sequence ($\Rightarrow$). It can move to many states ($Fixed_0 \xRightarrow{\tau} Fixed_1$).
+3. Attack: The attacker only has $\tau$'s transitions. Two of them leads to a dead state, so we choose $Deadlock_1 \xrightarrow{\tau} Deadlock_stuck$, i.e., we choose the transition that leads to the stuck state.
 4. Defense: The defender matches with another weak transition $Fixed_1 \xRightarrow{\tau} Fixed_2$. 
 5. Attack: The attacker is now in $Deadlock_{stuck}$. There are no available actions.
 
 In state $Fixed_2$, the defender is not deadlocked. It possesses valid transitions (e.g. $Fixed_2 \xrightarrow{send} Fixed_3$). Because the sets of available actions do not match ($\emptyset \neq {send,\tau}$), the Defender fails to mimic the Attacker's state. This proves that the two systems are not weakly bisimilar.
+
+Even if there are transitions that don't lead to a deadlock in the original model, the Attacker can always choose the path that leads to the deadlock, which cannot be mimicked by the Defender in the modified model. Therefore, $Deadlock \not\approx Fixed$.
 
 
 ## 1.3. Original CCS Model (with deadlock)
@@ -71,13 +80,13 @@ Because the system must allow for deadlocks, each transfer sequence strictly fol
 
 To define the generalized model for the three-participant scenario, where three participants can transfer money to one another without restrictions, the system uses value-passing CCS.
 
-The parameterized process $Person[x,cmd]$ acts as a template for any participant. It uses the parameters $x$, that represents the ID of the sender (1,2 or 3), and $cmd$, the channel through which the process receives transfer instructions. The process listens on its command channel ($cmd?y$) to receive the ID of thr target recipient $y$. To execute the transfer, it uses the naive sequential locking strategy already defined: it first requests its own accounts lock ($lock!x) and then requests the recipient's lock ($lock!y$). Once both resources are acquired, it executes the $send$ action, and subsequently releases both locks before returning to its initial state.
+The parameterized process `Person[x,cmd]` acts as a template for any participant. It uses the parameters $x$, that represents the ID of the sender (1,2 or 3), and $cmd$, the channel through which the process receives transfer instructions. The process listens on its command channel ($cmd?y$) to receive the ID of thr target recipient $y$. To execute the transfer, it uses the naive sequential locking strategy already defined: it first requests its own accounts lock ($lock!x) and then requests the recipient's lock ($lock!y$). Once both resources are acquired, it executes the $send$ action, and subsequently releases both locks before returning to its initial state.
 
-The component $Utilizador$ is responsible for driving the system by generating concurrent transfer requests. It uses the choice operator (+) to map a fully connected graph, defining all six possible permutations between the three participants. The recursion forces the participants to compete for locks.
+The component `Utilizador` is responsible for driving the system by generating concurrent transfer requests. It uses the choice operator (+) to map a fully connected graph, defining all six possible permutations between the three participants. The recursion forces the participants to compete for locks.
 
-GestorContas[c1,c2,c3] is a centralized state machine, where parameters $c1$, $c2$ and $c3$ act as boolean flags tracking the status of each account's lock, where $0$ indicates an available state and $1$ indicates a locked state. The "manager" listens for incoming lock and unlock requests. It evaluates boolean conditions using $when()$ guards. Upon a successful lock, the process recurses with the corresponding parameter updated to $1$ ($GestorContas[1, c2, c3]$).
+`GestorContas[c1,c2,c3]` is a centralized state machine, where parameters $c1$, $c2$ and $c3$ act as boolean flags tracking the status of each account's lock, where $0$ indicates an available state and $1$ indicates a locked state. The "manager" listens for incoming lock and unlock requests. It evaluates boolean conditions using $when()$ guards. Upon a successful lock, the process recurses with the corresponding parameter updated to $1$ (`GestorContas[1, c2, c3]`).
 
-The entire parallel architecture is defined by Sistema in exercises 1.1/1,2/1,3 and 1.4. It uses parallelization ($|$), instantiating three unique Person processes, with IDs 1,2, and 3, the Utilizador process and the GestorContas initialized with all accounts unlocked (0,0,0). It uses a restriction set with all actions except $send$.
+The entire parallel architecture is defined by Sistema in exercises 1.1/1,2/1,3 and 1.4. It uses parallelization ($|$), instantiating three unique Person processes, with IDs 1,2, and 3, the Utilizador process and the `GestorContas` initialized with all accounts unlocked (0,0,0). It uses a restriction set with all actions except $send$.
 
 Because the Person template utilizes the naive locking sequence, the circular wait deadlock is guaranteed.
 
@@ -257,29 +266,38 @@ This scenario is a pure visibility problem: one thread writes `paused = false`, 
 
 ## 3.1. General Actor Architecture
 
-The script $tickets1.scala$ implements a concurrency model using a single actor (main-office) to manage a shared resource (ticket stock).
+The script `tickets1.scala` implements a concurrency model using a single actor (main-office) to manage a shared resource (ticket stock).
 
 ### 3.1.1. State Management
 To manage states, the actor uses the Akka primitive $context.become(selling(new\_stock))$ to transition its behaviour to a new state with the updated inventory parameter, instead of using variables ($var$).
 
 ### 3.1.2. Message Processing
-- $ToSell(m)$: When the actor receives this message, he calculates the new stock ($n+m$) and transitions to the new state, adding tickets to the available stock.
-- $Buy(m)$: The actor eveluates the condition $n>=m$. If true, the transaction is processed, and the state is updated to $n-m$. If false, the transaction is rejected and an error is logged to the system console. This happens because $n$ can't be less than 0 - it's physically impossible.
-- $Bye$: This termination message triggers the $context.stop(self)$ instruction, terminating the actor's lifecycle and freeing memory.
+- `ToSell(m)`: When the actor receives this message, he calculates the new stock ($n+m$) and transitions to the new state, adding tickets to the available stock.
+- `Buy(m)`: The actor eveluates the condition $n>=m$. If true, the transaction is processed, and the state is updated to $n-m$. If false, the transaction is rejected and an error is logged to the system console. This happens because $n$ can't be less than 0 - it's physically impossible.
+- `Bye`: This termination class triggers the $context.stop(self)$ instruction, terminating the actor's lifecycle and freeing memory.
 
 ## 3.2. Child Actor Architecture 
 
-The script $tickets2.scala$ uses a more advanced architecture: it transitions to a parent-child hierarchy with automated delegation and a round-robin routing algorithm.
+The script `tickets2.scala` uses a more advanced architecture: it transitions to a parent-child hierarchy with automated delegation and uses a rejection system for when the child actor does not have enough stock to process a request. It also uses two classes, one for the Main Seller (Parent) and another for the Child Sellers, to better separate the logic of each type of actor.
 
-### 3.2.1. Inventory Delegation ($ToSell$)
-When the main-office receives a large batch of tickets, it evaluates a threshold condition ($while(stock > 100)$). If the inventory exceeds 100 units, the parent actor instantiates new child actors ($context.actorOf(...)$). It then delegates batches of 50 tickets to each child via the $ToSell(50)$ message, distributing the operational load.
+### 3.2.1. Inventory Delegation (`excessStock` function)
+When the main-office receives a large batch of tickets, it evaluates a threshold condition ($while(stock > 100)$). If the inventory exceeds 100 units, the parent actor instantiates new child actors ($context.actorOf(...)$). It then delegates batches of 50 tickets to each child via the `ToSell(50)` message, distributing the operational load. It also updates the list of active children to keep track of the current child actors. This dynamic scaling mechanism allows the system to handle large inventories efficiently, while maintaining a manageable workload for each actor. This function is only defined in the parent class, as the children are only responsible for processing delegated requests, not for managing inventory or creating new actors.
 
-### 3.2.2. Round-Robin Routing ($Buy$):
-When a $Buy(m)$ request arrives, the actor attempts to do it himself locally. If the parent does not have sufficient local stock ($n \le m$), it checks its child registry, i.e., if the main-office has any children ($context.children.toList$). If they exist, the parent acts as a balancer. It utilizes a $rotateIdx$ variable, that is updates via $\% filhos.size$ to select a child and uses the $.forward(Buy(m))$ method. The $forward$ primitive passes the message to the child while preserving the original sender's reference, meaning the child would reply directly to the client, bypassing the parent. It uses the round-robin algorithm so the "tasks" are distributed by all children, making it faster.
+### 3.2.2. Selling function
+This function manages the selling system `ToSell(m)`, `Buy(m)`, `Return(m)` and `Bye`. 
 
-### 3.2.3. Stock Return ($Return$):
-If a child actor receives a $Buy(m)$ request but has emptied its stock, it identifies its inability to process the transaction. To prevent resource leakage, the child sends its reamining stock back to the parent using $context.parent ! Return(n)$. After that, the child invokes $context.stop(self)$ to commit "suicide", self-terminating its process.
-The parent actor listens for $Return(m)$ messages from terminating children. Upon receipt, it aggregates the returned fragments back into its own local state ($context.become(selling(n+m)))$, ensuring zero inventory is lost during the destruction of child nodes.
+The `ToSell(m)` case creates a tuple by calling the `excessStock(stock, children)` function, which returns the new stock and the list of children. The parent actor then updates its state with the new stock and children list ($context.become(selling(newStock, newChildren))$). For the child actor class, the `ToSell(m)` case simply updates the local stock ($context.become(selling(stock+m))$), as they don't have the authority to create new actors or delegate inventory.
+
+The `Buy(m)` case is defined in both classes, but with different logic. The parent actor first checks if it can process the request locally. If not, it checks for available children and forwards the request to one of them. The child actor, on the other hand, only checks its local stock and processes the request if it has enough inventory. If it doesn't have enough stock, it sends a `Return(n)` message back to the parent and terminates itself.
+
+The `Return(n)` case, in the parent actor, calls `excessStock` to update its state with the new stock and children list, as it may need to create new child actors if the returned stock exceeds the threshold. In the child actor, this case is not defined.
+
+The `Bye` case is defined in both classes, and it simply terminates the actor's lifecycle using $context.stop(self)$.
+
+The auxiliary function `rejection` is defined in the child actor class. When a child actor receives a `Buy(m)`message that cannot be processed due to insufficient stock, it forwards the message to the parent actor. In the case that the message is not a `Buy(m)` message, the child actor terminates itself. 
+
+Both programs use an interative input testing, where the user can input the initial stock, tickets to buy and number of requests. The system will process the requests and print the final stock after all transactions are completed. The `Bye` message is sent at the end of the testing routine to terminate the main-office actor.
+
 
 ### 3.2.4. Diagrams
 The hierarchy diagram represents the supervision tree generated by the Akka ActorSystem: 
@@ -296,10 +314,10 @@ The sequence diagram models the asynchronous message-passing protocol and the li
 
 ![Sequence Diagram](/figures/sequenceDiagram.png)
 
-The purple fragment labeled $loop [stock > 100]$ encapsulates the iterative instantiation and delegation phase. Upon receiving the initial $ToSell(2000)$ message, the main-office continuously creates child actors and sends them $ToSell(50)$ messages until the threshold condition is false.
+The purple fragment labeled $loop [stock > 100]$ encapsulates the iterative instantiation and delegation phase. Upon receiving the initial `ToSell(n)` message, the main-office continuously creates child actors and sends them `ToSell(50)` messages until the threshold condition is false.
 
-The orange fragment ($ opt [parent stock \le 20]$) demonstrates the load-balancing logic. An external $Buy(20)$ request is only forwarded to a child node if the parent actor lacks sufficient local inventory to process the transaction.
+The orange fragment ($ opt [parent stock \le m]$) demonstrates the load-balancing logic. An external $Buy(m)$ request is only forwarded to a child node if the parent actor lacks sufficient local inventory to process the transaction.
 
-The blue fragment ($opt [stock child \le 20]$) demonstrates the failure recovery mechanism. If a delegated child cannot fullfilll a forwarded request, it returns its residual stock ($Return(10)$) upstream.
+The blue fragment ($opt [stock child \le m]$) demonstrates the failure recovery mechanism. If a delegated child cannot fullfilll a forwarded request, it returns its residual stock ($Return(10)$) upstream.
 
 The diagram accurately represents actor termination using "X" markers at the bottom of the lifelines. The child actor terminates itself immediately after returning stock, while the main-office terminates upon receiving the $Bye$ message from the testing routine.
