@@ -1,6 +1,12 @@
 # Report
 Group 6: Rita Moreira (202303885) and Orlando Soares (202303606)
 
+# Introduction
+This report documents the design, implementation, and analysis of concurrent systems using CCS and the Actor model. The project is structured into three main sections:
+1. Exercise 1: Modeling a money transfer system using CCS, including deadlock analysis and resolution
+2. Exercise 2: Simulating dependent processes in a server environment, addressing concurrency issues such as lost updates and thread safety
+3. Exercise 3: Implementing a ticket-selling system using the Actor model, with dynamic actor creation and delegation.
+
 # 0. AI Support
 In the development of this project, LLMs were strictly used as an auxiliary aid and validation instrument, rather than as code generators. 
 
