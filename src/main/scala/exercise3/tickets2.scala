@@ -35,8 +35,10 @@ object TicketOfficeChild extends App {
         // Selling state: n tickets available
         def selling(n: Int, children: Vector[ActorRef]): Actor.Receive = {
             case ToSell(m) =>
-                val (stock, updatedChildren) = excessStock(n + m, children) // atualiza o stock e a lista de filhos do ator principal
-                log.info(s"[Main] Received to sell message: $m, updated stock: $stock, children count: ${updatedChildren.size}")
+                // atualiza o stock e lista de filhos do ator principal
+                val (stock, updatedChildren) = excessStock(n + m, children) 
+                log.info(s"[Main] Received to sell message: $m," +
+                  s"updated stock: $stock, children count: ${updatedChildren.size}")
                 context.become(selling(stock, updatedChildren)) // atualiza o stock do ator principal
             case Buy(m) => 
                 log.info(s"[Main] Received buy message: $m")
@@ -51,7 +53,9 @@ object TicketOfficeChild extends App {
             case Return(m) => 
                 val activeChildren = children.filterNot(_ == sender()) // remove o filho que retornou o stock
                 log.info(s"[Main] Received return message: $m from child, updating stock and children list")
-                val (updatedStock, updatedChildren) = excessStock(n + m, activeChildren) // atualiza o stock e a lista de filhos do ator principal
+                sender() ! "AcknowledgeDeath"
+                // atualiza o stock e a lista de filhos do ator principal
+                val (updatedStock, updatedChildren) = excessStock(n + m, activeChildren) 
                 context.become(selling(updatedStock, updatedChildren)) // atualiza o stock do ator principal
             case Bye => 
                 log.info("[Main] Received bye message, stopping actor")
